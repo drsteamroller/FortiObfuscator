@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+# Description - On the way
+# Author: Andrew McConnell
+# Date: 03/15/2023
+
+
+import re
+import random
+
+# Global Variables
+contents = ""
+og_filename = 0
+address_matchings = dict()
+vdom_names = dict()
+ip_repl = dict()
+
+#REGEX ----> Use "group" function to select the part that matches https://docs.python.org/3/library/re.html#match-objects
+ipaddr = r'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
+m = re.compile(ipaddr)
+
+# Helper Functions
+def isRFC1918(ip):
+    a,b,c,d = ip.split('.')
+
+    if (int(a) == 10):
+        return(True)
+    elif(int(a) == 172 and int(b) in range(16,32)):
+        return(True)
+    elif(int(a) == 192 and int(b) == 168):
+        return(True)
+    else:
+        return(False)
+
+
+'''
+How it works:
+1) Split the IP into a list of 4 numbers (we assume IPv4)
+  a) expect_0 is set to True when we view a shift in 1's to 0's                                        V We set it to True so if there's a '1' after a '0', it's not a net_mask
+                                                            ===> 255.255.240.0 = 11111111.11111111.11110000.00000000
+  b) constant is a catch-all for when we detect it isn't (or is!!!) a net_mask, and we return it accordingly
+
+2) We take each value in the ip_list and check if it's non zero
+  a) If it's non zero, we subtract 2^i from that value where i is a list from 7 to 0.
+    i) If the value hits zero during this process and i is not zero, set expect_0 to True and break out of the process [val is zero so we don't need to subtract any more]
+    ii) If the value hits zero during the process and i IS zero (255 case), we continue to the next value
+    ###### IF AT ALL DURING THIS PROCESS THE VALUE GOES BELOW ZERO, WE SET constant = False AND BREAK AND RETURN constant ######
+  b) If the value starts out as zero, we don't bother with the process and just set expect_0 to True (catches 255.0.255.0 and similar cases)
+'''
+def isNetMask(ip):
+    _ = ip.split('.')
+    ip_list = list()
+    for item in _:
+        ip_list.append(int(item))
+    expect_0 = False
+    constant = True
+
+    for val in ip_list:
+        if (val != 0):
+            for i in range(7, -1, -1):
+                print(val)
+                val = val - pow(2, i)
+                if (val > 0 and not expect_0):
+                    continue
+                elif (val == 0  and i != 0):
+                    expect_0 = True
+                    break
+                elif (val == 0 and not expect_0 and i == 0):
+                    break
+                else:
+                    constant = False
+                    break
+            if (not constant):
+                break
+        else:
+            expect_0 = True
+    return constant
+
+def replace_ip(ip):
+    if (ip not in ip_repl.keys()):
+        repl = "{}.{}.{}.{}".format(chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)))
+        ip_repl[ip] = repl
+        return repl
+    
+    else:
+        return ip_repl[ip]
+
+# Program Functions
+def listOptions():
+    print("\nhelp = list this output\nload <file_path> = input file to be obfuscated\nexport = export file\nshow = view contents file contents\nobf = begin obfuscation with enabled settings\n")
+
+def load(filename):
+    c = ""
+    try:
+        fl = open(filename, 'r')
+        c = fl.readlines()
+        fl.close()
+    except:
+        print("Something when wrong, try full file path")
+    return c
+
+def show():
+    print(contents)
+
+def export():
+    new_filename = ""
+    if (not og_filename):
+        new_filename = input("No filename detected, what do you want the filename to be? > ")
+    else:
+        b, ext = og_filename.split('.')
+        new_filename = (b + "_obfuscated." + ext)
+    with open(new_filename, 'w') as outfl:
+        outfl.writelines(contents)
+    print("Successfully written to: {}".format(new_filename))
+
+def obfuscate():
+    if (not contents):
+        return("\nYou need to load a file first\n")
+
+    is_ip = re.compile(ipaddr)
+
+    for line in range(len(contents)):
+        if ("set hostname" in contents[line] or "set alias" in contents[line]):
+            l = contents[line].strip().split(" ")
+            l[2] = "US FEDERAL CUSTOMER\n"
+            contents[line] = "\t{} {} {}".format(l[0], l[1], l[2])
+        
+        if (is_ip.search(contents[line])):
+            g = contents[line].strip().split(" ")
+            together = "\t"
+            if ('"' in g[2]):
+                g[2] = g[2][1:-1]
+            if(not isRFC1918(g[2])):
+                g[2] = replace_ip(g[2])
+                for x in range(len(g)):
+                    together += g[x] + " "
+                contents[line] = together + "\n"
+    
+    return("\nOperation was successful\n")
+
+print("\n\n::::::::::  ::::::::  :::::::::  ::::::::::                           :::::::::: :::::::::: :::::::::  \n" +
+      ":+:        :+:    :+: :+:    :+: :+:                                  :+:        :+:        :+:    :+: \n" +
+      "+:+        +:+    +:+ +:+    +:+ +:+                                  +:+        +:+        +:+    +:+ \n" +
+      ":#::+::#   +#+    +:+ +#++:++#+  :#::+::#         +#++:++#++:++       :#::+::#   +#++:++#   +#+    +:+ \n" +
+      "+#+        +#+    +#+ +#+    +#+ +#+                                  +#+        +#+        +#+    +#+ \n" +
+      "#+#        #+#    #+# #+#    #+# #+#                                  #+#        #+#        #+#    #+# \n" +
+      "###         ########  #########  ###                                  ###        ########## #########  \n")
+
+print("______________________________________________________________________________________________________")
+print("\nFortiObfuscate - Mask hostname, External IP addresses, Usernames, VPN tunnels*, SNMP communities*, etc.\n*Under Construction\n")
+
+uin = input("--> ")
+while (uin not in 'quit'):
+
+    if ("load" in uin):
+        og_filename = uin.split(" ")[1]
+        contents = load(og_filename)
+    elif (uin in "show"):
+        show()
+    elif (uin in "export"):
+        export()
+    elif (uin in "obf"):
+        print(obfuscate())
+    else:
+        listOptions()
+
+    uin = input("--> ")
