@@ -3,7 +3,6 @@
 # Author: Andrew McConnell
 # Date: 03/15/2023
 
-
 import re
 import random
 
@@ -22,6 +21,7 @@ m = re.compile(ipaddr)
 def isRFC1918(ip):
     a,b,c,d = ip.split('.')
 
+    # Very explicitly checks if the addresses are RFC 1918 Class A/B/C addresses
     if (int(a) == 10):
         return(True)
     elif(int(a) == 172 and int(b) in range(16,32)):
@@ -35,15 +35,15 @@ def isRFC1918(ip):
 '''
 How it works:
 1) Split the IP into a list of 4 numbers (we assume IPv4)
-  a) expect_0 is set to True when we view a shift in 1's to 0's                                        V We set it to True so if there's a '1' after a '0', it's not a net_mask
-                                                            ===> 255.255.240.0 = 11111111.11111111.11110000.00000000
+  a) expect_0 is set to True when we view a shift in 1's to 0's                                V We set it to True so if there's a '1' after a '0', it's not a net_mask
+                                                    ===> 255.255.240.0 = 11111111.11111111.11110000.00000000
   b) constant is a catch-all for when we detect it isn't (or is!!!) a net_mask, and we return it accordingly
 
 2) We take each value in the ip_list and check if it's non zero
-  a) If it's non zero, we subtract 2^i from that value where i is a list from 7 to 0.
+  a) If it's non zero, we subtract 2^i from that value where i is a list from 7 to 0 (decremented).
     i) If the value hits zero during this process and i is not zero, set expect_0 to True and break out of the process [val is zero so we don't need to subtract any more]
     ii) If the value hits zero during the process and i IS zero (255 case), we continue to the next value
-    ###### IF AT ALL DURING THIS PROCESS THE VALUE GOES BELOW ZERO, WE SET constant = False AND BREAK AND RETURN constant ######
+    ###### IF AT ALL DURING THIS PROCESS THE VALUE GOES BELOW ZERO, WE SET constant = False AND BREAK AND 'return constant' ######
   b) If the value starts out as zero, we don't bother with the process and just set expect_0 to True (catches 255.0.255.0 and similar cases)
 '''
 def isNetMask(ip):
@@ -51,7 +51,14 @@ def isNetMask(ip):
     ip_list = list()
     for item in _:
         ip_list.append(int(item))
+
+    # Return false for quad 0 case (default routes)
+    if (ip_list == [0,0,0,0]):
+        return False
+
+    # Netmasks ALWAYS start with 1's
     expect_0 = False
+    # We start out assuming constancy
     constant = True
 
     for val in ip_list:
@@ -75,12 +82,14 @@ def isNetMask(ip):
             expect_0 = True
     return constant
 
+# Replaces IP addresses with [Letter].[Letter].[Letter].[Letter]
 def replace_ip(ip):
     if (ip not in ip_repl.keys()):
         repl = "{}.{}.{}.{}".format(chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)))
         ip_repl[ip] = repl
         return repl
     
+    # If we've replaced it before, pick out that replacement and return it
     else:
         return ip_repl[ip]
 
@@ -88,6 +97,7 @@ def replace_ip(ip):
 def listOptions():
     print("\nhelp = list this output\nload <file_path> = input file to be obfuscated\nexport = export file\nshow = view contents file contents\nobf = begin obfuscation with enabled settings\n")
 
+# Load a configuration file into a list and return the list
 def load(filename):
     c = ""
     try:
@@ -98,9 +108,11 @@ def load(filename):
         print("Something when wrong, try full file path")
     return c
 
+# Troubleshooting command to show the contents of what was loaded
 def show():
     print(contents)
 
+# Exports file that was loaded (pre or post obfuscation)
 def export():
     new_filename = ""
     if (not og_filename):
@@ -112,28 +124,37 @@ def export():
         outfl.writelines(contents)
     print("Successfully written to: {}".format(new_filename))
 
+# Obfuscation main fuction
 def obfuscate():
+
+    # If no file loaded, prompt to load a file
     if (not contents):
         return("\nYou need to load a file first\n")
 
+    # Compile the regex found at the top of this program
     is_ip = re.compile(ipaddr)
 
+    # Parse through the list containing the lines of the configuration file
     for line in range(len(contents)):
+
+        # If we see 'set hostname' or 'set alias', replace those with 'US Federal Customer'
         if ("set hostname" in contents[line] or "set alias" in contents[line]):
             l = contents[line].strip().split(" ")
             l[2] = "US FEDERAL CUSTOMER\n"
             contents[line] = "\t{} {} {}".format(l[0], l[1], l[2])
         
+        # If we see an IP address, check if it's public, and if so, replace it
         if (is_ip.search(contents[line])):
             g = contents[line].strip().split(" ")
             together = "\t"
-            if ('"' in g[2]):
-                g[2] = g[2][1:-1]
-            if(not isRFC1918(g[2])):
-                g[2] = replace_ip(g[2])
-                for x in range(len(g)):
-                    together += g[x] + " "
-                contents[line] = together + "\n"
+            if (len(g) > 2):
+                if ('"' in g[2]):
+                    g[2] = g[2][1:-1]
+                if(not isRFC1918(g[2])):
+                    g[2] = replace_ip(g[2])
+                    for x in range(len(g)):
+                        together += g[x] + " "
+                    contents[line] = together + "\n"
     
     return("\nOperation was successful\n")
 
@@ -148,9 +169,13 @@ print("\n\n::::::::::  ::::::::  :::::::::  ::::::::::                          
 print("______________________________________________________________________________________________________")
 print("\nFortiObfuscate - Mask hostname, External IP addresses, Usernames, VPN tunnels*, SNMP communities*, etc.\n*Under Construction\n")
 
+# user input
 uin = input("--> ")
+
+# While the user inputted option is not 'q', 'u', 'i', 't' or a combination of those letters (in 'quit' order)
 while (uin not in 'quit'):
 
+    # Do the option chosen by the user
     if ("load" in uin):
         og_filename = uin.split(" ")[1]
         contents = load(og_filename)
@@ -160,7 +185,10 @@ while (uin not in 'quit'):
         export()
     elif (uin in "obf"):
         print(obfuscate())
+    
+    # Unrecognized option: list the options
     else:
         listOptions()
 
+    # prompt line
     uin = input("--> ")
