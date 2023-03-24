@@ -7,9 +7,8 @@ import re
 import random
 
 # Global Variables
-contents = ""
+contents = []
 og_filename = 0
-address_matchings = dict()
 vdom_names = dict()
 ip_repl = dict()
 
@@ -85,7 +84,13 @@ def isNetMask(ip):
 # Replaces IP addresses with [Letter].[Letter].[Letter].[Letter]
 def replace_ip(ip):
     if (ip not in ip_repl.keys()):
-        repl = "{}.{}.{}.{}".format(chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)))
+        # repl = "{}.{}.{}.{}".format(chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)))
+        repl = ""
+        if (isRFC1918(ip)):
+            octets = ip.split('.')
+            repl = f"{octets[0]}.{octets[1]}.{random.randrange(0, 256)}.{random.randrange(1, 256)}"
+        else:
+            repl = f"{random.randrange(1, 255)}.{random.randrange(0, 256)}.{random.randrange(0, 256)}.{random.randrange(1, 256)}"
         ip_repl[ip] = repl
         return repl
     
@@ -136,25 +141,25 @@ def obfuscate():
 
     # Parse through the list containing the lines of the configuration file
     for line in range(len(contents)):
-
+        # Record the number of leading spaces, so we aren't having awkward lines that aren't in-line
+        leading = " " * re.search('\S', contents[line]).start()
+        
         # If we see 'set hostname' or 'set alias', replace those with 'US Federal Customer'
         if ("set hostname" in contents[line] or "set alias" in contents[line]):
             l = contents[line].strip().split(" ")
             l[2] = "US FEDERAL CUSTOMER\n"
-            contents[line] = "\t{} {} {}".format(l[0], l[1], l[2])
+            contents[line] = leading + "{} {} {}".format(l[0], l[1], l[2])
         
         # If we see an IP address, check if it's public, and if so, replace it
         if (is_ip.search(contents[line])):
             g = contents[line].strip().split(" ")
-            together = "\t"
             if (len(g) > 2):
                 if ('"' in g[2]):
                     g[2] = g[2][1:-1]
-                if(not isRFC1918(g[2])):
-                    g[2] = replace_ip(g[2])
-                    for x in range(len(g)):
-                        together += g[x] + " "
-                    contents[line] = together + "\n"
+                g[2] = replace_ip(g[2])
+
+                leading += " ".join(g)
+                contents[line] = leading + "\n"
     
     return("\nOperation was successful\n")
 
@@ -172,7 +177,7 @@ print("\nFortiObfuscate - Mask hostname, External IP addresses, Usernames, VPN t
 # user input
 uin = input("--> ")
 
-# While the user inputted option is not 'q', 'u', 'i', 't' or a combination of those letters (in 'quit' order)
+# While the user inputted option is not 'q', 'u', 'i', 't' or a combination of those letters
 while (uin not in 'quit'):
 
     # Do the option chosen by the user
