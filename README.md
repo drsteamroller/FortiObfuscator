@@ -8,4 +8,4 @@ Takes in a FortiGate configuration file and obfuscates the following:
 - Usernames
 - SNMP tunnels *
 
-* Under construction
+\* Under construction
