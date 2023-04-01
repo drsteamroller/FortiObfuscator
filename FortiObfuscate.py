@@ -13,8 +13,8 @@ vdom_names = dict()
 ip_repl = dict()
 
 #REGEX ----> Use "group" function to select the part that matches https://docs.python.org/3/library/re.html#match-objects
-ipaddr = r'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
-m = re.compile(ipaddr)
+ipaddr4 = r'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.](25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
+ipaddr6 = r"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"
 
 # Helper Functions
 def isRFC1918(ip):
@@ -82,9 +82,8 @@ def isNetMask(ip):
     return constant
 
 # Replaces IP addresses with [Letter].[Letter].[Letter].[Letter]
-def replace_ip(ip):
+def replace_ip4(ip):
     if (ip not in ip_repl.keys()):
-        # repl = "{}.{}.{}.{}".format(chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)), chr(random.randint(65, 90)))
         repl = ""
         if (isRFC1918(ip)):
             octets = ip.split('.')
@@ -98,9 +97,17 @@ def replace_ip(ip):
     else:
         return ip_repl[ip]
 
+def replace_ip6(ip):
+    if (ip not in ip_repl.keys()):
+        repl = f'{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}'
+        ip_repl[ip] = repl
+        return repl
+    else:
+        return ip_repl[ip]
+
 # Program Functions
 def listOptions():
-    print("\nhelp = list this output\nload <file_path> = input file to be obfuscated\nexport = export file\nshow = view contents file contents\nobf = begin obfuscation with enabled settings\n")
+    print("\nhelp = list this output\nload <file_path> = input file to be obfuscated\nmap = Show mapped addresses, only after 'obf' is run\nexport = export file\nshow = view contents file contents\nobf = begin obfuscation with enabled settings\n")
 
 # Load a configuration file into a list and return the list
 def load(filename):
@@ -110,7 +117,7 @@ def load(filename):
         c = fl.readlines()
         fl.close()
     except:
-        print("Something when wrong, try full file path")
+        print("Something when wrong, try full file path\n")
     return c
 
 # Troubleshooting command to show the contents of what was loaded
@@ -129,6 +136,25 @@ def export():
         outfl.writelines(contents)
     print("Successfully written to: {}".format(new_filename))
 
+def showMap():
+
+    if (not ip_repl):
+        print("You haven't obfuscated a configuration file yet\n")
+        return
+
+    ipv4s = "\t===>>> IPv4 ADDRESSES <<<===\n\
+            Original -> Replacement\n"
+    ipv6s = "\t===>>> IPv6 ADDRESSES <<<===\n\
+            Original -> Replacement\n"
+    
+    for k, v in ip_repl.items():
+        if len(v) > 15:
+            ipv6s += f"{k} -> {v}\n"
+        else:
+            ipv4s += f"{k} -> {v}\n"
+    sep = '=' * 24
+    print(f"{ipv4s}\n{sep}\n{ipv6s}")
+
 # Obfuscation main fuction
 def obfuscate():
 
@@ -137,7 +163,8 @@ def obfuscate():
         return("\nYou need to load a file first\n")
 
     # Compile the regex found at the top of this program
-    is_ip = re.compile(ipaddr)
+    is_ip4 = re.compile(ipaddr4)
+    is_ip6 = re.compile(ipaddr6, re.MULTILINE)
 
     # Parse through the list containing the lines of the configuration file
     for line in range(len(contents)):
@@ -151,12 +178,23 @@ def obfuscate():
             contents[line] = leading + "{} {} {}".format(l[0], l[1], l[2])
         
         # If we see an IP address, check if it's public, and if so, replace it
-        if (is_ip.search(contents[line])):
+        if (is_ip4.search(contents[line])):
             g = contents[line].strip().split(" ")
             if (len(g) > 2):
                 if ('"' in g[2]):
                     g[2] = g[2][1:-1]
-                g[2] = replace_ip(g[2])
+                g[2] = replace_ip4(g[2])
+
+                leading += " ".join(g)
+                contents[line] = leading + "\n"
+
+        elif (is_ip6.search(contents[line])):
+            print(contents[line])
+            g = contents[line].strip().split(" ")
+            if (len(g) > 2):
+                if ('"' in g[2]):
+                    g[2] = g[2][1:-1]
+                g[2] = replace_ip6(g[2].split('/')[0])
 
                 leading += " ".join(g)
                 contents[line] = leading + "\n"
@@ -186,6 +224,8 @@ while (uin not in 'quit'):
         contents = load(og_filename)
     elif (uin in "show"):
         show()
+    elif (uin in "map"):
+        showMap()
     elif (uin in "export"):
         export()
     elif (uin in "obf"):
