@@ -115,7 +115,7 @@ def listOptions():
     print("\nhelp = list this output\nload <file_path> = input file to be obfuscated\nmap = Show mapped addresses, only after 'obf' is run\nwritemap = Write the output of the map command to a text file\nexport = export file\nshow = view contents file contents\nobf = begin obfuscation with enabled settings\nmods = show modifiers\n")
 
 def listModifiers():
-    print("\nExclude from replacement:\n-privateips\n-allips\n-vpntunnels\n-snmpcommunities\t<-affects both snmpv2c & v3\n")
+    print("\nExclude from replacement:\n-privateips\n-allips\n-vpntunnels\n-snmpcommunities\t<-affects both snmpv2c & v3\n\n+clear\t<- Clear modifiers")
 
 # Load a configuration file into a list and return the list
 def load(filename):
@@ -374,7 +374,7 @@ while (uin not in 'quit'):
         listModifiers()
     elif (uin in "writemap"):
         showMap("w")
-    elif ("-" in uin):
+    elif ("-" in uin or '+' in uin):
         if ("-allips" == uin):
             modifiers.append("-allips")
             print(uin)
@@ -387,7 +387,9 @@ while (uin not in 'quit'):
         elif ("-snmpcommunities" == uin):
             modifiers.append("-snmpcommunities")
             print(uin)
-        
+        elif ("+clear" == uin):
+            modifiers.clear()
+            print("\nCleared modifiers\n")
         else:
             print("\nUnrecognized modifier\n")
     # Unrecognized option: list the options
