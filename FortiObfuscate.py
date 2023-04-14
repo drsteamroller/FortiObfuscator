@@ -19,7 +19,7 @@ ipaddr6 = r"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|
 
 # Helper Functions
 def isRFC1918(ip):
-    a,b,_ = ip.split('.')
+    a,b,c,d = ip.split('.')
 
     # Very explicitly checks if the addresses are RFC 1918 Class A/B/C addresses
     if (int(a) == 10):
