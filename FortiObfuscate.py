@@ -9,7 +9,7 @@ import random
 # Global Variables
 contents = []
 og_filename = 0
-vdom_names = dict()
+str_repl = dict()
 ip_repl = dict()
 modifiers = []
 
@@ -110,6 +110,24 @@ def replace_ip6(ip):
     else:
         return ip
 
+def replace_str(s):
+    if s in str_repl.keys():
+        return str_repl[s]
+
+    repl = ""
+    for ch in s:
+        c = 0
+        if (random.random() > .5):
+            c = chr(random.randint(65,90))
+        else:
+            c = chr(random.randint(97, 122))
+
+        repl += c
+
+    str_repl[s] = repl
+
+    return repl
+
 # Program Functions
 def listOptions():
     print("\nhelp = list this output\nload <file_path> = input file to be obfuscated\nmap = Show mapped addresses, only after 'obf' is run\nwritemap = Write the output of the map command to a text file\nexport = export file\nshow = view contents file contents\nobf = begin obfuscation with enabled settings\nmods = show modifiers\n")
@@ -168,8 +186,15 @@ def showMap(op):
         print(f"{ipv4s}\n{sep}\n{ipv6s}")
         return
     elif (op == "w"):
-        with open(f"{og_filename}_ipmapping.txt", 'w') as vi:
-            vi.write(f"{ipv4s}\n{sep}\n{ipv6s}")
+        with open(f"config_mapping.txt", 'w') as vi:
+            vi.write("+---------- MAPPED IP ADDRESSES ----------+\n")
+            for og, rep in ip_repl.items():
+                vi.write(f"Original IP: {og}\nMapped IP: {rep}\n\n")
+            vi.write("+---------- MAPPED MAC ADDRESSES ---------+\n\n")
+
+            vi.write("+---------- MAPPED STRING VALUES ---------+\n")
+            for og, rep in str_repl.items():
+                vi.write(f"Original String: {og}\nMapped String: {rep}\n\n")
         print(f"\nMap file written to {og_filename}_ipmapping.txt\n")
     else:
         print("\nUnknown option\n")
@@ -193,12 +218,6 @@ def obfuscate():
     IPSEC_P2 = False
 
     # Handle naming of snmp and vpn replacement names
-    snmp_comm_num = 1
-    snmp_host_num = 1
-    vpn_p1_num = 1
-    vpn_p2_num = 1
-    vpn_ddns_num = 1
-    vpn_tun_map = {}
 
     # Debugging
     x = ""
@@ -210,9 +229,10 @@ def obfuscate():
         leading = " " * re.search('\S', content).start()
         
         # If we see 'set hostname' or 'set alias', replace those with 'US Federal Customer'
-        if ("set hostname" in content or "set alias" in content):
+        if ("set hostname" in content or "set alias" in content or "description" in content):
             l = content.strip().split(" ")
-            l[2] = "US FEDERAL CUSTOMER\n"
+            name = replace_str(l[2])
+            l[2] = f"US_Fed_Cx_{name}\n"
             content = leading + "{} {} {}".format(l[0], l[1], l[2])
         
         # If we see an IP address, check if it's public, and if so, replace it
@@ -253,11 +273,11 @@ def obfuscate():
             if (not SNMP_HOSTS and SNMP and "edit" in content):
                 s = content.strip().split(" ")
                 if (len(g) > 1):
-                    s[1] = f'snmp_comm_{snmp_comm_num}'
+                    name = s[1]
+                    s[1] = f'fed_snmp_comm_{replace_str(name)}'
                 
                 leading += " ".join(s)
                 content = leading + "\n"
-                snmp_comm_num += 1
 
             if (SNMP and "config hosts" in content):
                 SNMP_HOSTS = True
@@ -265,11 +285,11 @@ def obfuscate():
             if (SNMP_HOSTS and "edit" in content):
                 s = content.strip().split(" ")
                 if (len(g) > 1):
-                    s[1] = f'snmp_host_{snmp_host_num}'
+                    name = s[1]
+                    s[1] = f'fed_snmp_comm_{replace_str(name)}'
 
                 leading += " ".join(s)
                 content = leading + "\n"
-                snmp_host_num += 1
 
             if (SNMP and "name" in content):
                 s = content.strip().split(" ")
@@ -293,40 +313,28 @@ def obfuscate():
             if (IPSEC_P1 and "set remotegw-ddns" in content):
                 v = content.strip().split(" ")
                 
-                repl = f'{vpn_ddns_num}.net'
+                repl = f'{replace_str(v[2])}.net'
                 
                 leading += f'{v[0]} {v[1]} {repl}\n'
                 content = leading
 
             if (IPSEC_P1 and "edit" in content):
                 v = content.strip().split(" ")
-                repl = f'vpn_p1_{vpn_p1_num}'
-                
-                if (v[1] not in vpn_tun_map.keys()):
-                    vpn_tun_map[v[1]] = repl
-                    vpn_p1_num += 1
-                else:
-                    repl = vpn_tun_map[v[1]]
+                repl = f'vpn_p1_{replace_str(v[1])}'
 
                 leading += f"{v[0]} {repl}\n"
                 content = leading
                 
             if (IPSEC_P2 and "edit" in content):
                 v = content.strip().split(" ")
-                repl = f'vpn_p2_{vpn_p2_num}'
+                repl = f'vpn_p2_{replace_str(v[1])}'
 
                 leading += f"{v[0]} {repl}\n"
                 content = leading
-                vpn_p2_num += 1
             
             if (IPSEC_P2 and "set phase1name" in content):
                 v = content.strip().split(" ")
-                try:
-                    repl = vpn_tun_map[v[2]]
-                except KeyError as e:
-                    # Odd case where P2 shows up in the backup before P1
-                    vpn_tun_map[v[2]] = f'vpn_p1_{vpn_p1_num}'
-                    repl = vpn_tun_map[v[2]]
+                repl = replace_str(v[2])
                 
                 leading += f"{v[0]} {v[1]} {repl}\n"
                 content = leading
@@ -374,6 +382,7 @@ while (uin not in 'quit'):
         listModifiers()
     elif (uin in "writemap"):
         showMap("w")
+        print(str_repl)
     elif ("-" in uin or '+' in uin):
         if ("-allips" == uin):
             modifiers.append("-allips")
