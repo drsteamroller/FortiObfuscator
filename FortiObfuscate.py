@@ -5,6 +5,7 @@
 
 import re
 import random
+import sys
 
 # Global Variables
 contents = []
