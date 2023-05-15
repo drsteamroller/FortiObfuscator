@@ -131,7 +131,15 @@ def replace_str(s):
 
 # Program Functions
 def listOptions():
-    print("\nhelp = list this output\nload <file_path> = input file to be obfuscated\nmap = Show mapped addresses, only after 'obf' is run\nwritemap = Write the output of the map command to a text file\nexport = export file\nshow = view contents file contents\nobf = begin obfuscation with enabled settings\nmods = show modifiers\n")
+    print("\nhelp = list this output\n\
+          load <file_path> = input file to be obfuscated\n\
+          map = Show mapped addresses, only after 'obf' is run\n\
+          writemap = Write the output of the map command to a text file\n\
+          importmap <filename> = Import mapfile that was output from FortiObfuscate.py or another FFI program\n\
+          export = export file\n\
+          show = view contents file contents\n\
+          obf = begin obfuscation with enabled settings\n\
+          mods = show modifiers\n")
 
 def listModifiers():
     print("\nExclude from replacement:\n-privateips\n-allips\n-vpntunnels\n-snmpcommunities\t<-affects both snmpv2c & v3\n\n+clear\t<- Clear modifiers")
@@ -445,6 +453,8 @@ while (uin not in 'quit'):
     elif (uin in "writemap"):
         showMap("w")
         print(str_repl)
+    elif (uin in "importmap"):
+         importMap(uin.split(" ")[1])
     elif ("-" in uin or '+' in uin):
         if ("-allips" == uin):
             modifiers.append("-allips")
