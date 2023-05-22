@@ -1,4 +1,4 @@
-# FortiObfuscator.py -> anonymizes FortiGate configuration files
+# confsrb.py -> anonymizes FortiGate configuration files
 
 Takes in a FortiGate configuration file and obfuscates the following:
 
@@ -11,7 +11,7 @@ Takes in a FortiGate configuration file and obfuscates the following:
 ## Usage
 
 ```
-python FortiObfuscator.py
+python confsrb.py
 ```
 
 This loads the CLI program, the options available:

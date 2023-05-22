@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# Description - On the way
 # Author: Andrew McConnell
 # Date: 03/15/2023
 
