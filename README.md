@@ -11,7 +11,7 @@ Takes in a FortiGate configuration file and obfuscates the following:
 ## Usage
 
 ```
-{ py | python } FortiObfuscator.py
+python FortiObfuscator.py
 ```
 
 This loads the CLI program, the options available:

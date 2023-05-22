@@ -32,6 +32,36 @@ def isRFC1918(ip):
     else:
         return(False)
 
+# a more granular check
+def isValidIP6(addr):
+	if type(addr) == bytes:
+		addr = str(addr)[2:-1]
+	
+	maxcol = 7
+	mincol = 2
+	countcol = 0
+	maxnums = 4
+	countnums = 0
+	validchars = re.compile(r'[A-Fa-f0-9:]')
+
+	for num in addr:
+		ch = validchars.search(num)
+		if not ch:
+			return False
+		
+		if num in ':':
+			countcol += 1
+			if countnums > maxnums:
+				return False
+			countnums = 0
+		else:
+			countnums += 1
+
+	if countcol < mincol or countcol > maxcol:
+		return False
+
+	return True
+
 '''
 How it works:
 1) Split the IP into a list of 4 numbers (we assume IPv4)
@@ -102,6 +132,10 @@ def replace_ip4(ip):
         return ip_repl[ip]
 
 def replace_ip6(ip):
+
+    if not isValidIP6(ip):
+         return ip
+
     if (ip not in ip_repl.keys() and "-allips" not in modifiers):
         repl = f'{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}:{hex(random.randrange(1, 65535))[2:]}'
         ip_repl[ip] = repl
@@ -245,23 +279,23 @@ def importMap(filename):
 		if imp_ip:
 			components = l.split(':')
 			if ('Original' in components[0]):
-				OG = components[1]
+				OG = components[1].strip()
 			else:
-				ip_repl[OG] = components[1]
+				ip_repl[OG] = components[1].strip()
 				OG = ""
 		elif imp_mac:
 			components = l.split(':')
 			if ('Original' in components[0]):
-				OG = components[1]
+				OG = components[1].strip()
 			else:
 				#mac_repl[OG] = components[1]
 				OG = ""
 		elif imp_str:
 			components = l.split(':')
 			if ('Original' in components[0]):
-				OG = components[1]
+				OG = components[1].strip()
 			else:
-				str_repl[OG] = components[1]
+				str_repl[OG] = components[1].strip()
 				OG = ""
 		
 		else:
