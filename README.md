@@ -11,32 +11,21 @@ Takes in a FortiGate configuration file and obfuscates the following:
 ## Usage
 
 ```
-python confsrb.py
+python confsrb.py <conf-file> [options] OR
+python confsrb.py -g conf1.conf,conf2.conf,conf3.conf... [options] OR
+python confsrb.py -d <path> [options]
 ```
 
 This loads the CLI program, the options available:
 
 - Options:
 ```
-help = list this output
-load <file_path> = input file to be obfuscated
-map = Show mapped addresses, only after 'obf' is run
-writemap = Write the output of the map command to a text file
-export = export file
-show = view contents file contents
-obf = begin obfuscation with enabled settings
-mods = show modifiers
+-h: Display this output
+-g: Use this option if you are inputting a group of logs. Usage: py confsrb.py -g conf1.conf,conf2.conf,conf3.conf... <options>
+-d: Same as -g, but specifying a whole directory. Usage: py confsrb.py -d [path] <options> (Assumes all files in the directory are configuration files)
+-sPIP": Scrub private IPs. Assumes /16 subnet
+-pi": preserve all ip addresses
+-ps": preserve snmp community names
+-pv": preserve vpn phase1/2 names names
+-map=<mapfilename>: Import IP/MAC/String mappings from other FFI program output
 ```
-
-- Modifiers:
-```
-Exclude from replacement:
--privateips             <- Excludes JUST private IPs from replacement
--allips                 <- Excludes public & private IPs from replacement
--vpntunnels             <- Tunnel Phase 1 & 2 names + DDNS
--snmpcommunities        <- affects both snmpv2c & v3
-```
-
-## Known Issues
-
-I built this program with the idea that you could load and work with multiple config files. Currently it only works with one at a time.

@@ -491,7 +491,7 @@ def obfuscate(conf):
     return conf
 
 options = {"-h": "Display this output",\
-           "-g": "Use this option if you are inputting a group of logs. Usage: py logscrub.py -g log1.log,log2.log3.log... <options",\
+           "-g": "Use this option if you are inputting a group of logs. Usage: py logscrub.py -g log1.log,log2.log3.log... <options>",\
            "-d": "Same as -g, but specifying a whole directory. Usage: py logscrub.py -d [path] <options>",\
            "-sPIP": "Scrub private IPs. Assumes /16 subnet",\
            "-pi":"preserve all ip addresses",\
