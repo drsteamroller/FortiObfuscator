@@ -407,7 +407,7 @@ def obfuscate(conf):
             content = leading + "\n"
         
         ### SNMP Communities ###
-        if ("-ps" in opflags):
+        if ("-ps" not in opflags):
             if ("config system snmp community" in content or "config system snmp user" in content):
                 SNMP = True
             
